@@ -339,7 +339,7 @@ const CONFIG = {
   brandBar.innerHTML = `
     <div class="tb-author">✨ سازنده: علیرضا بیگدلو</div>
     <div class="tb-social">
-      <a href="https://t.me/soodran_app" target="_blank" rel="noopener noreferrer" class="tb-link tb-link-tg">📢 کانال تلگرام</a>
+      <a href="tg://resolve?domain=SoodRan_App" target="_blank" rel="noopener noreferrer" class="tb-link tb-link-tg">📢 کانال تلگرام</a>
       <a href="https://github.com/alirezabigdelu" target="_blank" rel="noopener noreferrer" class="tb-link tb-link-gh">💻 گیت‌هاب</a>
     </div>
   `;
