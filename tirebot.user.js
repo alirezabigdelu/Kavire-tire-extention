@@ -1,8 +1,9 @@
 // ==UserScript==
-// @name         TireBot Kavir Tire
+// @name         TireBot Kavir Tire (By Alireza Bigdeloo)
 // @namespace    tirebot
-// @version      1.2
-// @description  Kavir Tire auto-buy helper (Modern Light UI)
+// @version      1.3
+// @description  Kavir Tire auto-buy helper - Created by Alireza Bigdeloo
+// @author       Alireza Bigdeloo
 // @match        *://kavirtire.ir/*
 // @match        *://*.kavirtire.ir/*
 // @run-at       document-idle
@@ -18,10 +19,10 @@
   const dbg = document.createElement("div");
   dbg.id = "tirebot-dbg";
   dbg.style.cssText =
-    "position:fixed;bottom:8px;left:8px;right:8px;z-index:2147483647;background:#10b981;color:#fff;" +
-    "font:12px/1.5 Tahoma,monospace;padding:6px 12px;border-radius:10px;direction:ltr;text-align:left;" +
-    "white-space:pre-wrap;word-break:break-all;max-height:35vh;overflow:auto;box-shadow:0 4px 12px rgba(0,0,0,0.15)";
-  dbg.textContent = "TireBot v1.2: script started";
+    "position:fixed;bottom:10px;left:10px;right:10px;z-index:2147483647;background:#10b981;color:#fff;" +
+    "font:11.5px/1.4 Tahoma,monospace;padding:5px 10px;border-radius:10px;direction:ltr;text-align:left;" +
+    "white-space:pre-wrap;word-break:break-all;max-height:30vh;overflow:auto;box-shadow:0 4px 12px rgba(0,0,0,0.12)";
+  dbg.textContent = "TireBot v1.3 (By Alireza Bigdeloo): started";
   (document.documentElement || document.body).appendChild(dbg);
   const dbgErrs = [];
   const showErr = (e, where) => {
@@ -31,7 +32,7 @@
     dbg.style.background = "#ef4444";
     dbg.textContent = "TireBot ERROR\n" + dbgErrs.join("\n---\n");
   };
-  setTimeout(() => { if (!dbgErrs.length) dbg.remove(); }, 4000);
+  setTimeout(() => { if (!dbgErrs.length) dbg.remove(); }, 3500);
 
 // ======================= تنظیمات =======================
 const CONFIG = {
@@ -47,13 +48,11 @@ const CONFIG = {
   testDelaySec: 15,
   clockSyncSamples: 8,
 
-  // --- مرحله ۱: افزودن به سبد ---
   addToCart: {
     selector: "",
     texts: ["افزودن به سبد", "اضافه به سبد", "اضافه کردن به سبد"],
   },
 
-  // --- مرحله ۲: صفحه‌ی «تایید و پرداخت» ---
   gateways: ["صادرات", "اقتصاد نوین", "رفاه کارگران"],
   defaultGateway: "صادرات",
   continueTexts: [
@@ -106,7 +105,7 @@ const CONFIG = {
   let st = load() || { stage: "armed", mode: "real", targetMs: computeTarget() };
   save();
 
-  // ---------------- رینگ و تنظیمات ذخیره‌شده ----------------
+  // ---------------- ذخیره‌سازی تنظیمات ----------------
   const LS_RIMS = "tirebot_rims", LS_MIN = "tirebot_minutes";
   const LS_COLLAPSED = "tirebot_collapsed", LS_POS = "tirebot_pos";
   const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -132,7 +131,7 @@ const CONFIG = {
   }
   const rimNote = () => {
     const r = getRims();
-    return r.length ? "رینگ: " + r.join("، ") : "⚠️ رینگی انتخاب نشده";
+    return r.length ? "رینگ: " + r.join("، ") : "⚠️ بدون رینگ";
   };
 
   const LS_GW = "tirebot_gateway";
@@ -147,119 +146,253 @@ const CONFIG = {
   const getRefreshOn = () => lsGet(LS_RFON) === "1";
   const getRefreshSec = () => { const v = parseFloat(lsGet(LS_RFSEC) || ""); return v >= 2 ? v : CONFIG.refreshSec; };
 
-  function looksLoggedOut() {
-    return (
-      /login|signin|sign-in|auth/i.test(location.pathname) ||
-      [...document.querySelectorAll("input[type=password]")].some(isVisible)
-    );
-  }
+  const isCollapsed = () => lsGet(LS_COLLAPSED) === "1";
+  const setCollapsed = (v) => lsSet(LS_COLLAPSED, v ? "1" : "0");
+  const getPos = () => lsGet(LS_POS) === "bottom" ? "bottom" : "top";
+  const setPos = (p) => lsSet(LS_POS, p);
 
-  // در صفحه لاگین به صورت پیش‌فرض پنل جمع می‌شود تا جلوی کد ملی را نگیرد
-  let isCollapsed = looksLoggedOut() ? true : lsGet(LS_COLLAPSED) === "1";
-  let isBottom = lsGet(LS_POS) === "bottom";
+  // ---------------- استایل و رابط کاربری فوق فشرده و روشن ----------------
+  const styleEl = document.createElement("style");
+  styleEl.textContent = `
+    #tirebot-bar {
+      position: fixed;
+      left: 8px;
+      right: 8px;
+      z-index: 2147483646;
+      background: rgba(255, 255, 255, 0.97);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: #1e293b;
+      font: 12px/1.45 Tahoma, "Vazirmatn", sans-serif;
+      padding: 7px 10px;
+      direction: rtl;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      border-radius: 16px;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.12), 0 2px 6px -1px rgba(15, 23, 42, 0.06);
+      max-height: 75vh;
+      overflow-y: auto;
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+    }
+    #tirebot-bar.tb-top { top: 6px; bottom: auto; }
+    #tirebot-bar.tb-bottom { bottom: 6px; top: auto; }
+    #tirebot-bar.tb-alert {
+      background: #fef2f2 !important;
+      border-color: #f87171 !important;
+    }
+    /* نوار معرفی سازنده و لینک‌ها */
+    .tb-brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      background: linear-gradient(90deg, #f0f9ff 0%, #ecfdf5 100%);
+      border: 1px solid #bae6fd;
+      padding: 4px 8px;
+      border-radius: 11px;
+      flex-wrap: wrap;
+    }
+    .tb-author {
+      font-weight: bold;
+      color: #0369a1;
+      font-size: 11.5px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .tb-social {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .tb-link {
+      text-decoration: none !important;
+      font: bold 11px Tahoma, sans-serif;
+      padding: 3px 9px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+      cursor: pointer;
+    }
+    .tb-link:hover {
+      transform: translateY(-1px);
+      opacity: 0.92;
+    }
+    .tb-link-tg {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: #ffffff !important;
+      box-shadow: 0 2px 5px rgba(2, 132, 199, 0.25);
+    }
+    .tb-link-gh {
+      background: linear-gradient(135deg, #334155, #0f172a);
+      color: #ffffff !important;
+      box-shadow: 0 2px 5px rgba(15, 23, 42, 0.2);
+    }
+    /* هدر وضعیت و کنترل */
+    .tb-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .tb-status {
+      font-weight: bold;
+      color: #0f766e;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      padding: 4px 9px;
+      border-radius: 10px;
+      font-size: 11.5px;
+      flex: 1;
+      min-width: 150px;
+    }
+    .tb-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    /* کشوی تنظیمات فشرده */
+    .tb-drawer {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-top: 4px;
+      border-top: 1px dashed #e2e8f0;
+    }
+    .tb-drawer.tb-hidden {
+      display: none !important;
+    }
+    .tb-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px;
+      background: #f8fafc;
+      padding: 4px 7px;
+      border-radius: 10px;
+      border: 1px solid #f1f5f9;
+    }
+    .tb-tag {
+      color: #475569;
+      font-size: 11px;
+      font-weight: bold;
+      margin-left: 2px;
+    }
+    .tb-btn {
+      cursor: pointer;
+      padding: 3px 8px;
+      font: 11.5px Tahoma, sans-serif;
+      min-height: 26px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #334155;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+    .tb-btn-rim {
+      min-width: 28px;
+      padding: 2px 6px;
+      font-weight: bold;
+    }
+    .tb-btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+    .tb-btn.tb-active {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      border-color: #059669;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(16, 185, 129, 0.25);
+    }
+    .tb-btn.tb-danger {
+      background: #fee2e2;
+      color: #b91c1c;
+      border-color: #fca5a5;
+      font-weight: bold;
+    }
+    .tb-btn.tb-soft {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-color: #bfdbfe;
+      font-weight: bold;
+    }
+  `;
+  document.head.appendChild(styleEl);
 
-  // ---------------- رابط کاربری مدرن، روشن و دلباز ----------------
   const bar = document.createElement("div");
   bar.id = "tirebot-bar";
 
-  function applyBarPosition() {
-    bar.style.cssText =
-      "position:fixed;left:8px;right:8px;z-index:2147483647;" +
-      (isBottom ? "bottom:8px;top:auto;" : "top:8px;bottom:auto;") +
-      "background:rgba(255, 255, 255, 0.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);" +
-      "color:#1e293b;font:13.5px/1.6 Tahoma,sans-serif;padding:10px 12px;direction:rtl;" +
-      "display:flex;flex-direction:column;gap:8px;max-height:48vh;overflow:auto;" +
-      "box-sizing:border-box;border-radius:16px;border:1px solid #e2e8f0;" +
-      "box-shadow:0 8px 24px rgba(15, 23, 42, 0.12);transition:all 0.2s ease";
-    updateBodySpacing();
-  }
+  // ۱. نوار معرفی سازنده و لینک‌های تلگرام و گیت‌هاب (همیشه قابل مشاهده)
+  const brandBar = document.createElement("div");
+  brandBar.className = "tb-brand";
+  brandBar.innerHTML = `
+    <div class="tb-author">✨ سازنده: علیرضا بیگدلو</div>
+    <div class="tb-social">
+      <a href="https://t.me/soodran_app" target="_blank" rel="noopener noreferrer" class="tb-link tb-link-tg">📢 کانال تلگرام</a>
+      <a href="https://github.com/alirezabigdelu" target="_blank" rel="noopener noreferrer" class="tb-link tb-link-gh">💻 گیت‌هاب</a>
+    </div>
+  `;
 
-  // هدر همیشه‌فعال (نمایش وضعیت + دکمه جمع/باز کردن + تغییر مکان + توقف/ریست)
-  const headerRow = document.createElement("div");
-  headerRow.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap";
-
+  // ۲. ردیف وضعیت و دکمه‌های اصلی
+  const header = document.createElement("div");
+  header.className = "tb-header";
   const label = document.createElement("div");
-  label.style.cssText = "font-weight:bold;color:#0f172a;font-size:13.5px;flex:1;min-width:160px";
-
+  label.className = "tb-status";
   const headerActions = document.createElement("div");
-  headerActions.style.cssText = "display:flex;align-items:center;gap:6px;flex-shrink:0";
+  headerActions.className = "tb-header-actions";
+  header.append(label, headerActions);
 
-  headerRow.append(label, headerActions);
+  // ۳. کشوی تنظیمات
+  const drawer = document.createElement("div");
+  drawer.className = "tb-drawer";
 
-  // بخش قابل جمع شدن (تنظیمات رینگ، درگاه و تست)
-  const detailsWrap = document.createElement("div");
   const sizeBox = document.createElement("div");
-  const gwBox = document.createElement("div");
-  const optBox = document.createElement("div");
+  const gwOptBox = document.createElement("div"); // ترکیب درگاه و تنظیمات برای اشغال فضای کمتر
   const btnBox = document.createElement("div");
-  [sizeBox, gwBox, optBox, btnBox].forEach(
-    (b) => (b.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;align-items:center")
-  );
-  detailsWrap.append(sizeBox, gwBox, optBox, btnBox);
+  [sizeBox, gwOptBox, btnBox].forEach((b) => (b.className = "tb-row"));
 
-  function syncCollapseUI() {
-    detailsWrap.style.display = isCollapsed ? "none" : "flex";
-    detailsWrap.style.flexDirection = "column";
-    detailsWrap.style.gap = "8px";
-    detailsWrap.style.paddingTop = "6px";
-    detailsWrap.style.borderTop = "1px solid #f1f5f9";
-    updateBodySpacing();
-  }
-
-  // تنظیم فاصله بالای صفحه تا هیچ دکمه‌ای از سایت زیر پنل نرود
-  function updateBodySpacing() {
-    requestAnimationFrame(() => {
-      if (!document.body) return;
-      const h = bar.offsetHeight || 0;
-      if (!isBottom) {
-        document.body.style.paddingTop = (h + 18) + "px";
-        document.body.style.paddingBottom = "";
-      } else {
-        document.body.style.paddingBottom = (h + 18) + "px";
-        document.body.style.paddingTop = "";
-      }
-    });
-  }
-
-  bar.append(headerRow, detailsWrap);
+  drawer.append(sizeBox, gwOptBox, btnBox);
+  bar.append(brandBar, header, drawer);
   document.documentElement.appendChild(bar);
-  applyBarPosition();
-  syncCollapseUI();
-
-  if (typeof ResizeObserver !== "undefined") {
-    new ResizeObserver(() => updateBodySpacing()).observe(bar);
-  }
 
   const setLabel = (t) => (label.textContent = t);
 
-  function mkBtn(text, fn, active, variant = "default") {
-    const b = document.createElement("button");
-    b.textContent = text;
-    let bg = "#f1f5f9", color = "#334155", border = "#cbd5e1", shadow = "none";
-
-    if (active) {
-      bg = "#10b981";
-      color = "#ffffff";
-      border = "#059669";
-      shadow = "0 2px 6px rgba(16, 185, 129, 0.25)";
-    } else if (variant === "danger") {
-      bg = "#fee2e2";
-      color = "#dc2626";
-      border = "#fca5a5";
-    } else if (variant === "primary") {
-      bg = "#e0f2fe";
-      color = "#0284c7";
-      border = "#bae6fd";
-    } else if (variant === "ghost") {
-      bg = "#f8fafc";
-      color = "#475569";
-      border = "#e2e8f0";
+  // تنظیم فاصله خودکار صفحه تا پنل روی هیچ دکمه‌ای نیفتد
+  function syncPageSpacing() {
+    const pos = getPos();
+    bar.classList.toggle("tb-top", pos === "top");
+    bar.classList.toggle("tb-bottom", pos === "bottom");
+    if (!document.body) return;
+    const h = bar.offsetHeight || 65;
+    if (pos === "top") {
+      document.body.style.paddingTop = (h + 14) + "px";
+      document.body.style.paddingBottom = "";
+    } else {
+      document.body.style.paddingBottom = (h + 14) + "px";
+      document.body.style.paddingTop = "";
     }
+  }
 
-    b.style.cssText =
-      "cursor:pointer;padding:5px 11px;font:12.5px Tahoma,sans-serif;min-height:32px;border-radius:10px;" +
-      `border:1px solid ${border};background:${bg};color:${color};box-shadow:${shadow};` +
-      "transition:all 0.15s ease;display:inline-flex;align-items:center;justify-content:center";
+  if (typeof ResizeObserver !== "undefined") {
+    new ResizeObserver(() => syncPageSpacing()).observe(bar);
+  }
+
+  function mkBtn(text, fn, active, extraClass = "") {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = text;
+    b.className = "tb-btn" + (active ? " tb-active" : "") + (extraClass ? " " + extraClass : "");
     b.addEventListener("click", fn);
     return b;
   }
@@ -277,6 +410,7 @@ const CONFIG = {
     const n = parseFloat(foldKey(v));
     if (n >= 2 && n <= 3600) { lsSet(LS_RFSEC, String(n)); renderButtons(); }
   }
+
   function setPayMsPrompt() {
     const v = prompt("فاصله‌ی تلاش‌های پرداخت چند ثانیه باشه؟ (0.3 تا 10)", String(getPayMs() / 1000));
     if (v === null) return;
@@ -284,49 +418,48 @@ const CONFIG = {
     if (n >= 0.3 && n <= 10) { lsSet(LS_PAYMS, String(Math.round(n * 1000))); renderButtons(); }
   }
 
+  function looksLoggedOut() {
+    return (
+      /login|signin|sign-in|auth/i.test(location.pathname) ||
+      [...document.querySelectorAll("input[type=password], input[name*='national' i], input[placeholder*='کد ملی']")].some(isVisible)
+    );
+  }
+
+  let autoCollapsedOnLogin = false;
+
   function renderButtons() {
     headerActions.innerHTML = "";
     sizeBox.innerHTML = "";
-    gwBox.innerHTML = "";
-    optBox.innerHTML = "";
+    gwOptBox.innerHTML = "";
     btnBox.innerHTML = "";
 
     const running = st.stage === "armed" || st.stage === "checkout";
+    const collapsed = isCollapsed();
+    drawer.classList.toggle("tb-hidden", collapsed);
 
-    // دکمه‌های هدر (همیشه در دسترس حتی در حالت جمع‌شده)
     headerActions.append(
-      mkBtn(
-        isCollapsed ? "🔽 تنظیمات" : "🔼 جمع کردن",
-        () => {
-          isCollapsed = !isCollapsed;
-          lsSet(LS_COLLAPSED, isCollapsed ? "1" : "0");
-          syncCollapseUI();
-          renderButtons();
-        },
-        false,
-        "primary"
-      ),
-      mkBtn(
-        isBottom ? "⬆️ بالا" : "⬇️ پایین",
-        () => {
-          isBottom = !isBottom;
-          lsSet(LS_POS, isBottom ? "bottom" : "top");
-          applyBarPosition();
-          renderButtons();
-        },
-        false,
-        "ghost"
-      ),
+      mkBtn(collapsed ? "🔽 تنظیمات" : "🔼 جمع", () => {
+        setCollapsed(!isCollapsed());
+        renderButtons();
+      }, !collapsed, "tb-soft"),
+      mkBtn(getPos() === "top" ? "⬇️" : "⬆️", () => {
+        setPos(getPos() === "top" ? "bottom" : "top");
+        renderButtons();
+      }, false),
       running
-        ? mkBtn("⏹ توقف", () => finish("stopped", "ربات متوقف شد."), false, "danger")
-        : mkBtn("🔄 شروع مجدد", resetBot, true)
+        ? mkBtn("⏹ توقف", () => finish("stopped", "⏸ ربات متوقف شد."), false, "tb-danger")
+        : mkBtn("▶️ شروع", resetBot, true)
     );
 
     if (running) {
+      sizeBox.style.display = "flex";
+      gwOptBox.style.display = "flex";
+
+      // ردیف ۱: رینگ‌ها + مدت
       const chosen = new Set(getRims());
       const tag = document.createElement("span");
       tag.textContent = "رینگ:";
-      tag.style.cssText = "align-self:center;color:#64748b;font-size:12.5px;font-weight:bold;margin-left:2px";
+      tag.className = "tb-tag";
       sizeBox.append(tag);
       CONFIG.rims.forEach((r) =>
         sizeBox.append(
@@ -335,63 +468,61 @@ const CONFIG = {
             if (cur.has(r)) cur.delete(r); else cur.add(r);
             setRims([...cur].sort());
             renderButtons();
-          }, chosen.has(r))
+          }, chosen.has(r), "tb-btn-rim")
         )
       );
       const allOn = CONFIG.rims.every((r) => chosen.has(r));
       sizeBox.append(
         mkBtn("همه", () => { setRims(allOn ? [...CONFIG.defaultRims] : [...CONFIG.rims]); renderButtons(); }, allOn),
-        mkBtn(`⏱ مدت: ${getMinutes()} دقیقه`, setMinutesPrompt)
+        mkBtn(`⏱ ${getMinutes()}د`, setMinutesPrompt)
       );
-    }
 
-    if (running) {
+      // ردیف ۲: درگاه‌ها + چرخش و سرعت پرداخت
       const gsel = getGateway();
       const gtag = document.createElement("span");
       gtag.textContent = "درگاه:";
-      gtag.style.cssText = "align-self:center;color:#64748b;font-size:12.5px;font-weight:bold;margin-left:2px";
-      gwBox.append(gtag);
+      gtag.className = "tb-tag";
+      gwOptBox.append(gtag);
       CONFIG.gateways.forEach((g) =>
-        gwBox.append(
-          mkBtn(g, () => {
-            lsSet(LS_GW, g);
-            st.gwBase = CONFIG.gateways.indexOf(g);
-            st.attempt = 0;
-            save();
-            renderButtons();
-          }, gsel === g)
-        )
+        gwOptBox.append(mkBtn(g, () => {
+          lsSet(LS_GW, g);
+          st.gwBase = CONFIG.gateways.indexOf(g);
+          st.attempt = 0;
+          save();
+          renderButtons();
+        }, gsel === g))
       );
+
+      gwOptBox.append(
+        mkBtn(getRotate() ? "🔁 چرخش: روشن" : "🔁 چرخش: خاموش",
+          () => { lsSet(LS_ROT, getRotate() ? "0" : "1"); renderButtons(); }, getRotate()),
+        mkBtn(`⚡ ${(getPayMs() / 1000).toFixed(1)}ث`, setPayMsPrompt)
+      );
+    } else {
+      sizeBox.style.display = "none";
+      gwOptBox.style.display = "none";
     }
 
+    // ردیف ۳: رفرش و ابزارهای تست و کپی
     if (running) {
-      optBox.append(
-        mkBtn(
-          getRotate() ? "🔁 چرخش درگاه: روشن" : "🔁 چرخش درگاه: خاموش",
-          () => { lsSet(LS_ROT, getRotate() ? "0" : "1"); renderButtons(); },
-          getRotate()
-        ),
-        mkBtn(`⚡ تلاش پرداخت: ${(getPayMs() / 1000).toFixed(1)} ثانیه`, setPayMsPrompt),
-        mkBtn(
-          getRefreshOn() ? "🔃 رفرش صفحه: روشن" : "🔃 رفرش صفحه: خاموش",
-          () => { lsSet(LS_RFON, getRefreshOn() ? "0" : "1"); renderButtons(); },
-          getRefreshOn()
-        ),
-        mkBtn(`⏱ هر ${getRefreshSec()} ثانیه`, setRefreshPrompt)
+      btnBox.append(
+        mkBtn(getRefreshOn() ? "🔃 رفرش: روشن" : "🔃 رفرش: خاموش",
+          () => { lsSet(LS_RFON, getRefreshOn() ? "0" : "1"); renderButtons(); }, getRefreshOn()),
+        mkBtn(`⏱ ${getRefreshSec()}ث`, setRefreshPrompt)
       );
     }
-
-    btnBox.append(mkBtn("📋 کپی اطلاعات صفحه", collectInfo, false, "ghost"));
+    btnBox.append(mkBtn("📋 کپی اطلاعات", collectInfo, false, "tb-soft"));
     if (running && st.mode === "real") {
       btnBox.append(
-        mkBtn("🧪 تست بدون کلیک", () => startTest("test-dry"), false, "primary"),
-        mkBtn("🧪 تست کامل", () => {
+        mkBtn("🧪 تست شناسایی", () => startTest("test-dry")),
+        mkBtn("🧪 تست خرید", () => {
           if (confirm("تست کامل واقعاً محصول رو انتخاب می‌کنه و تا درگاه پیش می‌ره (پرداخت نمی‌شه). ادامه؟"))
             startTest("test-real");
-        }, false, "primary")
+        })
       );
     }
-    updateBodySpacing();
+
+    setTimeout(syncPageSpacing, 20);
   }
 
   function beep() {
@@ -411,8 +542,8 @@ const CONFIG = {
     document.title = "🔔 " + document.title.replace(/^🔔 /, "");
     let n = 0;
     const f = setInterval(() => {
-      bar.style.background = n++ % 2 ? "rgba(255, 255, 255, 0.96)" : "#fee2e2";
-      if (n > 20) { clearInterval(f); bar.style.background = "rgba(255, 255, 255, 0.96)"; }
+      bar.classList.toggle("tb-alert", n++ % 2 === 0);
+      if (n > 20) { clearInterval(f); bar.classList.remove("tb-alert"); }
     }, 300);
   }
 
@@ -433,7 +564,7 @@ const CONFIG = {
     gwTries = 0; gwLastTry = 0; gwWarn = false;
     captchaAlerted = false; loginAlerted = false; lastBtn = null;
     renderButtons();
-    setLabel("ربات دوباره آماده شد.");
+    setLabel("✅ ربات آماده شد.");
     timer = setInterval(tick, 50);
   }
 
@@ -470,7 +601,7 @@ const CONFIG = {
 
   async function ensureOffset() {
     if (typeof st.offset === "number" && Date.now() - st.offsetAt < 10 * 60 * 1000) return;
-    setLabel("⏱ در حال هماهنگ‌سازی ساعت با سایت...");
+    setLabel("⏱ هماهنگ‌سازی ساعت با سایت...");
     const off = await syncClock();
     st.offset = off === null ? 0 : off;
     st.synced = off !== null;
@@ -480,7 +611,7 @@ const CONFIG = {
 
   const serverNow = () => Date.now() + (st.offset || 0);
   const offsetNote = () =>
-    st.synced ? `ساعت سایت (اختلاف ${(st.offset / 1000).toFixed(2)}ث)` : "⚠️ ساعت دستگاه";
+    st.synced ? `ساعت سایت (${(st.offset / 1000).toFixed(1)}ث)` : "⚠️ ساعت دستگاه";
 
   // ---------------- پیدا کردن دکمه‌ها ----------------
   const foldKey = (x) =>
@@ -553,7 +684,7 @@ const CONFIG = {
   }
 
   function visibleButtonTexts() {
-    return [...clickables()].filter((e) => isVisible(e) && !isDisabled(e) && !e.closest("#tirebot-bar")).map(textOf)
+    return [...clickables()].filter((e) => isVisible(e) && !isDisabled(e)).map(textOf)
       .filter((t) => t && t.length < 30).slice(0, 8).join(" | ");
   }
 
@@ -582,7 +713,7 @@ const CONFIG = {
       for (let i = 0; i < 4 && p; i++, p = p.parentElement) {
         const t = norm(p.innerText);
         if (t.length > 20) {
-          card = /نام|کدملی|کد ملی|موبایل|تلفن|ایمیل|آدرس|شاسی|موتور/.test(t) ? "(اطلاعات شخصی حذف شد)" : mask(t).slice(0, 100);
+          card = /نام|کدملی|کد ملی|موبایل|تلفن|ایمیل|آدرس|شاسی|موتور/.test(t) ? "(حذف شد)" : mask(t).slice(0, 100);
           break;
         }
       }
@@ -627,7 +758,7 @@ const CONFIG = {
     };
     const txt = JSON.stringify(info, null, 1);
     navigator.clipboard.writeText(txt).then(
-      () => setLabel("📋 اطلاعات کپی شد؛ توی چت Paste کن (Ctrl+V)."),
+      () => setLabel("📋 اطلاعات صفحه کپی شد."),
       () => prompt("این متن رو کپی کن:", txt)
     );
   }
@@ -654,9 +785,9 @@ const CONFIG = {
   const pageLoadedAt = Date.now();
   let lastKeepAlive = Date.now();
   let loginAlerted = false;
-  let lastBtn = null, lastClickAt = 0, captchaAlerted = false;
+  let lastBtn = null, captchaAlerted = false;
   let gwTries = 0, gwLastTry = 0, gwWarn = false;
-  const modeTag = () => (st.mode === "real" ? "" : st.mode === "test-dry" ? "🧪[تست بدون کلیک] " : "🧪[تست کامل] ");
+  const modeTag = () => (st.mode === "real" ? "" : st.mode === "test-dry" ? "🧪[تست] " : "🧪[تست خرید] ");
 
   const LS_RFCLICK = "tirebot_lastrefreshclick";
   function clickRefresh(rf) {
@@ -665,7 +796,6 @@ const CONFIG = {
     rf.click();
   }
 
-  // ---------- انتخاب درگاه در صفحه‌ی پرداخت ----------
   function findGatewayOption(name) {
     const target = foldKey(name);
     const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -703,16 +833,16 @@ const CONFIG = {
 
   function onAddFound(btn) {
     if (st.mode === "test-dry") {
-      btn.style.outline = "4px solid #ef4444";
+      btn.style.outline = "4px solid #10b981";
       btn.scrollIntoView({ block: "center" });
-      finish("done", `🧪 تست موفق: دکمه پیدا شد (کلیک نشد) ← «${textOf(btn)}»`, true);
+      finish("done", `🧪 دکمه پیدا شد (کلیک نشد) ← «${textOf(btn)}»`, true);
       return;
     }
     st.stage = "checkout";
     st.stageStart = Date.now();
     st.attempt = 0; st.lastConfirmAt = 0; st.gwBase = null; st.reachedGateway = false;
     save();
-    setLabel(modeTag() + "🛒 افزودن به سبد زده شد، رفتن به صفحه‌ی پرداخت...");
+    setLabel(modeTag() + "🛒 افزودن به سبد زده شد، انتقال به پرداخت...");
     renderButtons();
     btn.click();
   }
@@ -756,7 +886,7 @@ const CONFIG = {
   const rfNote = () => {
     if (!getRefreshOn()) return "";
     const left = Math.ceil(((st.lastReloadAt || pageLoadedAt) + getRefreshSec() * 1000 - Date.now()) / 1000);
-    return ` | 🔃 رفرش بعدی ${Math.max(0, left)}ث`;
+    return ` | 🔃 ${Math.max(0, left)}ث`;
   };
 
   function checkoutStep() {
@@ -766,28 +896,28 @@ const CONFIG = {
 
     if (onGate) {
       if (!st.reachedGateway) { st.reachedGateway = true; save(); alertUser(); }
-      setLabel("💳 در حال انتقال به درگاه بانک... پرداخت با خودته.");
+      setLabel("💳 درگاه بانک باز شد؛ پرداخت را تکمیل کنید.");
       return;
     }
 
     const err = onPay ? detectPayError() : { limit: false, soldout: false };
 
     if (err.soldout) {
-      finish("stopped", "⛔ پیغام «موجودی محصول به اتمام رسیده» دریافت شد؛ ربات متوقف شد.", true);
+      finish("stopped", "⛔ موجودی محصول به اتمام رسیده؛ ربات متوقف شد.", true);
       return;
     }
 
     if (!onPay) {
-      if (st.reachedGateway) { setLabel("✔️ از صفحه‌ی پرداخت رد شدی؛ ادامه با خودته."); return; }
+      if (st.reachedGateway) { setLabel("✔️ از صفحه‌ی پرداخت رد شدید."); return; }
       const waited = Date.now() - st.stageStart;
       if (/products/i.test(path) && waited > CONFIG.addFailSec * 1000) {
         st.stage = "armed";
         save();
-        setLabel("افزودن به سبد جواب نداد؛ دوباره زیر نظر می‌گیرم...");
+        setLabel("افزودن به سبد عمل نکرد؛ بررسی مجدد...");
         return;
       }
       if (waited > CONFIG.checkoutTimeoutSec * 1000) {
-        finish("done", "⚠️ به صفحه‌ی پرداخت نرسیدم؛ از همین‌جا خودت ادامه بده. دکمه‌ها: " + visibleButtonTexts(), true);
+        finish("done", "⚠️ به صفحه‌ی پرداخت نرسیدیم؛ دستی ادامه دهید.", true);
         return;
       }
       setLabel(modeTag() + "🛒 منتظر باز شدن صفحه‌ی پرداخت...");
@@ -795,7 +925,7 @@ const CONFIG = {
     }
 
     if (st.reachedGateway) {
-      if (!err.limit) { setLabel("💳 قبلاً به درگاه رفتی؛ اگر پرداخت نشد، دوباره از همین‌جا تلاش کن."); return; }
+      if (!err.limit) { setLabel("💳 قبلاً به درگاه رفتید."); return; }
       st.reachedGateway = false;
       save();
     }
@@ -817,7 +947,7 @@ const CONFIG = {
       else if (since >= CONFIG.payWaitMs) shouldAttempt = true;
     }
     if (!shouldAttempt) {
-      setLabel(`${modeTag()}⏳ تلاش ${attemptNo} انجام شد؛ منتظر پاسخ سایت${err.limit ? " (خطای تعداد دفعات)" : ""}...${rfNote()}`);
+      setLabel(`${modeTag()}⏳ تلاش ${attemptNo} انجام شد؛ منتظر پاسخ...${rfNote()}`);
       return;
     }
 
@@ -827,7 +957,7 @@ const CONFIG = {
 
     const gw = findGatewayOption(tgt);
     if (!gw) {
-      setLabel(modeTag() + `⏳ منتظر نمایش درگاه «${tgt}» در صفحه‌ی پرداخت...`);
+      setLabel(modeTag() + `⏳ منتظر نمایش درگاه «${tgt}»...`);
       return;
     }
     if (!gwSelected(gw.outer)) {
@@ -848,8 +978,8 @@ const CONFIG = {
     if (!btn) {
       const waited = now - st.stageStart;
       setLabel(modeTag() + (waited > 8000
-        ? "دکمه‌ی «تایید و پرداخت» فعال نیست/پیدا نشد. دکمه‌های صفحه: " + visibleButtonTexts()
-        : "منتظر فعال شدن دکمه‌ی «تایید و پرداخت»..."));
+        ? "دکمه‌ی پرداخت پیدا نشد."
+        : "منتظر فعال شدن دکمه‌ی پرداخت..."));
       return;
     }
 
@@ -857,15 +987,15 @@ const CONFIG = {
     st.lastConfirmAt = now;
     save();
     gwTries = 0;
-    const warn = gwWarn ? " (انتخاب درگاه تایید نشد)" : "";
+    const warn = gwWarn ? " (عدم تایید درگاه)" : "";
     gwWarn = false;
-    setLabel(`${modeTag()}💳 تلاش ${st.attempt}: «${textOf(btn)}» با درگاه ${tgt}${warn}${rfNote()}`);
+    setLabel(`${modeTag()}💳 تلاش ${st.attempt}: «${textOf(btn)}» (${tgt})${warn}${rfNote()}`);
     btn.click();
   }
 
   function cardsNote() {
     return scanCards()
-      .slice(0, 5)
+      .slice(0, 4)
       .map((c) => {
         const t = foldKey(c.root.textContent);
         const why = CONFIG.unavailableTexts.find((u) => t.includes(foldKey(u)));
@@ -889,17 +1019,21 @@ const CONFIG = {
   function tick() {
     try { tickInner(); } catch (e) { showErr(e, "tick"); }
   }
+
   function tickInner() {
     if ((st.stage === "armed" || st.stage === "checkout") && looksLoggedOut()) {
-      if (!isCollapsed) {
-        isCollapsed = true;
-        syncCollapseUI();
+      if (!autoCollapsedOnLogin && !isCollapsed()) {
+        autoCollapsedOnLogin = true;
+        setCollapsed(true);
         renderButtons();
       }
-      setLabel("⚠️ وارد حساب شو؛ بعد از ورود ربات خودکار ادامه می‌ده.");
+      setLabel("🔑 وارد حساب شوید؛ ربات پس از ورود ادامه می‌دهد.");
       if (!loginAlerted) { loginAlerted = true; alertUser(); }
       return;
+    } else if (autoCollapsedOnLogin) {
+      autoCollapsedOnLogin = false;
     }
+
     if (st.stage === "checkout") return checkoutStep();
     if (st.stage !== "armed") return;
 
@@ -930,7 +1064,7 @@ const CONFIG = {
         lastKeepAlive = Date.now();
         return;
       }
-      finish("stopped", "🧪 تست تموم شد، دکمه پیدا نشد.", true);
+      finish("stopped", "🧪 تست تمام شد، دکمه پیدا نشد.", true);
       return;
     }
 
@@ -951,18 +1085,16 @@ const CONFIG = {
       finish(
         "done",
         cards.length
-          ? `🧪 ${cards.length} کارت با رینگ انتخابی پیدا شد (کادر نارنجی). وضعیت: ` +
-              cards.map((c) => (c.avail ? "موجود" : "ناموجود")).join("، ")
-          : "🧪 کارتی با رینگ انتخابی پیدا نشد؛ رینگ یا ساختار صفحه رو چک کن.",
+          ? `🧪 ${cards.length} کارت پیدا شد: ` + cards.map((c) => (c.avail ? "موجود" : "ناموجود")).join("، ")
+          : "🧪 کارتی با این رینگ پیدا نشد.",
         true
       );
       return;
     }
 
-    const stk = (stockTxt ? " | موجودی کل سایت: " + stockTxt : "") + (cardsTxt ? " | " + cardsTxt : "");
+    const stk = (stockTxt ? " | موجودی: " + stockTxt : "") + (cardsTxt ? " | " + cardsTxt : "");
     const endAt = new Date(st.targetMs + winMs).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" });
-    const rfWarn = st.rfBroken ? " | ⚠️ دکمه‌ی بروزرسانی صفحه رو لود می‌کرد؛ دیگه نمی‌زنمش، خودت دستی بروزرسانی کن" : "";
-    setLabel(modeTag() + `🔄 ${rimNote()} | هنوز موجود نشده؛ تا ساعت ${endAt} تلاش می‌کنم${stk}${rfWarn}${rfNote()}`);
+    setLabel(modeTag() + `🔄 ${rimNote()} | تلاش تا ${endAt}${stk}${rfNote()}`);
     if (refreshDue()) { doReload(); return; }
     const pace = now - st.targetMs > CONFIG.fastMinutes * 60000 ? CONFIG.slowRetryMs : CONFIG.retryMs;
     if (Date.now() - lastTry > pace) {
@@ -980,11 +1112,14 @@ const CONFIG = {
   }
 
   // ---------------- شروع ----------------
+  if (looksLoggedOut()) setCollapsed(true);
   renderButtons();
+
   if (st.stage === "done" || st.stage === "stopped") {
-    setLabel(st.stage === "done" ? (st.final ? "💳 رسیدی به درگاه؛ پرداخت با خودته (کار ربات تمام شد)." : "✔️ کار ربات تمام شد.") : "ربات متوقف است.");
+    setLabel(st.stage === "done" ? "✔️ عملیات ربات تمام شد." : "⏸ ربات متوقف است.");
     return;
   }
+
   const lastRf = parseInt(sessionStorage.getItem(LS_RFCLICK) || "0", 10);
   if (st.stage === "armed" && !st.rfBroken && lastRf && Date.now() - lastRf < 6000) {
     st.rfBroken = true;
