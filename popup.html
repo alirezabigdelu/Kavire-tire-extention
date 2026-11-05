@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+  body{width:260px;margin:0;padding:12px;font:13px/1.6 Tahoma,sans-serif;color:#1e293b}
+  h1{font-size:14px;margin:0 0 8px}
+  label{display:block;margin:8px 0 4px}
+  input{width:100%;box-sizing:border-box;padding:6px;direction:ltr;text-align:center;border:1px solid #cbd5e1;border-radius:8px;font-size:14px}
+  button{margin-top:10px;width:100%;padding:7px;border:0;border-radius:8px;background:#0284c7;color:#fff;font:inherit;cursor:pointer}
+  #msg{margin-top:8px;font-size:12px;color:#059669;min-height:18px}
+  small{display:block;margin-top:8px;color:#64748b}
+</style>
+</head>
+<body>
+  <h1>TireBot — تنظیمات</h1>
+  <label for="t">ساعت شروع فروش (منطقه‌ی زمانی دستگاه)</label>
+  <input id="t" type="time" step="1" value="08:00:00">
+  <button id="s">ذخیره</button>
+  <div id="msg"></div>
+  <small>بعد از ذخیره، تب کویر تایر را رفرش کنید. بقیه‌ی تنظیمات (رینگ، درگاه و...) از نوار داخل خود سایت انجام می‌شود.</small>
+  <script src="popup.js"></script>
+</body>
+</html>
